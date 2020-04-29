@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+	    <meta name="viewport" content="initial-scale=1.0, user-scalable=no"/>
+	    <link rel="stylesheet" href="../static/css/reset.css" />
+	    <link rel="stylesheet" href="../static/css/baidu_map.css" />
+	    <link rel="stylesheet" href="../static/css/font-awesome-4.7.0/css/font-awesome.min.css" />
+	    <script type="text/javascript" src="//api.map.baidu.com/api?v=2.0&ak=wtLOgjD8mHsg7sIIeT4hvE9yK3aG619o"></script>
+	    <script type="text/javascript" src="//api.map.baidu.com/library/Heatmap/2.0/src/Heatmap_min.js"></script>
+	    <script src="../static/js/jquery-3.3.1.js"></script>
+	    <title>热力图</title>
+	</head>
+	<body>
+		<div id="main">
+			<span class="title"><i class="fa fa-globe globe"></i>地图展示</span>
+			<div id="r-result">
+			    <input type="button" class="btn btn1" onclick="openHeatmap();" value="显示热力图"/>
+			    <input type="button" class="btn btn2" onclick="closeHeatmap();" value="关闭热力图"/>
+			    <input type="button" class="btn btn3" onclick="mark_on();" value="显示景点分布"/>
+			    <input type="button" class="btn btn4" onclick="mark_off();" value="关闭景点分布"/>
+			</div>
+			<!--地图-->
+			<div id="container"></div>	
+		</div>
+		<div id="info">
+			<span class="title"><i class="fa fa-university university"></i>景点推荐</span>
+			<div>
+				<p><i class="fa fa-plane plane"></i>景点：<span id="travel_name">武汉黄鹤楼</span></p>
+				<p><i class="fa fa-map-marker marker"></i>地址：<span id="travel_address">湖北武汉市</span></p>
+				<ul class="point">
+					<li><a href="#">
+						<img src="../static/img/info01.jpg" alt="" width="100%" height="100%"/>
+						<div>
+							<h4>神农架国际生态旅游区</h4>
+							<span class="detail">神农架有野人吗？一起来探寻吧</span>
+						</div>
+					</a></li>
+					<li><a href="#">
+						<img src="../static/img/info02.jpg" alt="" width="100%" height="100%"/>
+						<div>
+							<h4>神农架国际生态旅游区</h4>
+							<span class="detail">神农架有野人吗？一起来探寻吧</span>
+						</div>
+					</a></li>
+				</ul>			
+			</div>
+		</div>
+	</body>
+</html>
+<script type="text/javascript">
+	// 获取屏幕的高度
+	var bodyh = window.parent.document.documentElement.clientHeight;
+	//设置地图的高度
+	document.getElementById("container").style.height = bodyh-270 + "px";
+    var map = new BMap.Map("container");          // 创建地图实例
+
+    var point = new BMap.Point(114.315035, 30.600954);
+    map.centerAndZoom(point, 6);             // 初始化地图，设置中心点坐标和地图级别
+    map.setCurrentCity("武汉");
+    map.addControl(new BMap.MapTypeControl());
+    map.enableScrollWheelZoom(); // 允许滚轮缩放
+
+    // 列表，每一项是一个json，json的项依次为纬度、经度、权重
+    // [{'lat':31.247482648, 'lng':117.23726383682, 'count':32.45362},{}]
+    var avg_points = ((avg_temp_html | tojson | safe));
+    // var avg_points = [{'lat':31.247482648, 'lng':117.23726383682, 'count':32.45362}];
+    // [{'name':'武汉黄鹤楼', 'address':'湖北省武汉市', 'lat': 30.550317764282227, 'lng': 114.30904388427734}]
+    var travel_points = ((datas_html | tojson | safe));
+    // var travel_points = [{'name':'武汉黄鹤楼', 'address':'湖北省武汉市', 'lat': 30.550317764282227, 'lng': 114.30904388427734}];
+
+    if (!isSupportCanvas()) {
+        alert('热力图目前只支持有canvas支持的浏览器,您所使用的浏览器不能使用热力图功能~')
+    }
+    //详细的参数,可以查看heatmap.js的文档 https://github.com/pa7/heatmap.js/blob/master/README.md
+    //参数说明如下:
+    /* visible 热力图是否显示,默认为true
+     * opacity 热力的透明度,1-100
+     * radius 势力图的每个点的半径大小
+     * gradient  {JSON} 热力图的渐变区间 . gradient如下所示
+     *	{
+            .2:'rgb(0, 255, 255)',
+            .5:'rgb(0, 110, 255)',
+            .8:'rgb(100, 0, 255)'
+        }
+        其中 key 表示插值的位置, 0~1.
+            value 为颜色值.
+     */
+    heatmapOverlay = new BMapLib.HeatmapOverlay({"radius": 30});
+    map.addOverlay(heatmapOverlay);
+    heatmapOverlay.setDataSet({data: avg_points, max: 50});
+
+    // 开启热力图
+    function openHeatmap() {
+        heatmapOverlay.show();
+    }
+
+    // 关闭热力图
+    function closeHeatmap() {
+        heatmapOverlay.hide();
+    }
+
+    // 默认开启热力图
+    closeHeatmap();
+
+
+    function setGradient() {
+        /*格式如下所示:
+       {
+             0:'rgb(102, 255, 0)',
+             .5:'rgb(255, 170, 0)',
+             1:'rgb(255, 0, 0)'
+       }*/
+        var gradient = {};
+        var colors = document.querySelectorAll("input[type='color']");
+        colors = [].slice.call(colors, 0);
+        colors.forEach(function (ele) {
+            gradient[ele.getAttribute("data-key")] = ele.value;
+        });
+        heatmapOverlay.setOptions({"gradient": gradient});
+    }
+
+    //判断浏览区是否支持canvas
+    function isSupportCanvas() {
+        var elem = document.createElement('canvas');
+        return !!(elem.getContext && elem.getContext('2d'));
+    }
+
+    // 添加标记的方法
+    function addMarker(travel_points) {
+            //循环建立标注点
+            for (var i = 0, travel_pointsLen = travel_points.length; i < travel_pointsLen; i++) {
+                var point = new BMap.Point(travel_points[i].lng, travel_points[i].lat); //将标注点转化成地图上的点
+                var marker = new BMap.Marker(point); //将点转化成标注点
+
+                map.addOverlay(marker);  //将标注点添加到地图上
+                //添加监听事件
+                (function () {
+                    var thePoint = travel_points[i];
+                    marker.addEventListener("click",
+                        function () {
+                            showInfo(this, thePoint);
+                            // 修改当前标记的颜色
+                            change_mark_blue(this);
+                        });
+
+                })();
+            }
+    }
+
+    // 清除标记的方法
+    function clearMarker() {
+    	// 隐藏推荐的景点
+		document.getElementById("info").style.display = "none";
+		//修改content的宽度
+		window.parent.document.getElementById("content").style.width = "80%";
+		//修改main的宽度
+		document.getElementById("main").style.width = "96%";
+        var len = map.getOverlays().length;
+        for (var j = 0; j < len; j++) {
+            if (map.getOverlays()[j].toString()==="[object Marker]") {
+                map.removeOverlay(map.getOverlays()[j]);
+            }
+        }
+        if (map.getOverlays().length > 2){
+            clearMarker()
+        }
+    }
+
+    // 点击标记之后显示的信息
+    function showInfo(thisMarker, point) {
+        //获取点的信息
+        var sContent =
+            '<ul style="margin:0 0 5px 0;padding:0.2em 0">'
+            + '<li style="line-height: 26px;font-size: 15px;">'
+            + '<span style="width: 50px;display: inline-block;">景点：</span>' + point.name + '</li>'
+            + '<li style="line-height: 26px;font-size: 15px;">'
+            + '<span style="width: 50px;display: inline-block;">地址：</span>' + point.address + '</li>'
+            + '</ul>';
+        var infoWindow = new BMap.InfoWindow(sContent); //创建信息窗口对象
+        thisMarker.openInfoWindow(infoWindow); //图片加载完后重绘infoWindow
+        // 显示推荐的景点
+	document.getElementById("info").style.display = "block";
+	//修改content的宽度
+	window.parent.document.getElementById("content").style.width = "100%";
+	//修改main的宽度
+	document.getElementById("main").style.width = "72%";
+	$("#travel_name").html(point.name);
+	$("#travel_address").html(point.address);
+
+    }
+
+    // 开启景点标记
+    function mark_on() {
+        addMarker(travel_points);
+        // change_mark_image()
+    }
+
+    // 修改标记样式
+    function change_mark_blue(thisMarker) {
+        // 修改标记样式
+        // console.log(thisMarker);
+		thisMarker.Bc.getElementsByTagName("div")[0].getElementsByTagName("img")[0].src = '../static/mark_blue.png';
+    }
+
+    function change_mark_red(thisMarker) {
+        // 修改标记样式
+        // console.log(thisMarker);
+		thisMarker.Bc.getElementsByTagName("div")[0].getElementsByTagName("img")[0].src = '../static/mark_red.png';
+    }
+
+    // 关闭景点标记
+    function mark_off() {
+        clearMarker();
+    }
+
+	$("#submit_").click(openHeatmap());
+</script>
+
